@@ -1,0 +1,14 @@
+name: Add Testcases for APIs and run them.
+begin_date: 2022-2-1
+end_date: 2022-3-1
+tasks:
+  - begin_date: 2022-02-03
+    end_date: 2022-02-05
+    priority: 2
+    status_id: 1
+    name: Test the XML APIs.
+  - begin_date: 2022-02-06
+    end_date: 2022-02-08
+    priority: 3
+    status_id: 1
+    name: Test the YAML APIs.

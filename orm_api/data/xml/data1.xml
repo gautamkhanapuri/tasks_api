@@ -1,0 +1,19 @@
+<xml>
+<name>Add Testcases for APIs and run them</name>
+<begin_date>2022-2-1</begin_date>
+<end_date>2022-3-1</end_date>
+<task>
+<name>Test the XML APIs.</name>
+<begin_date>2022-02-03</begin_date>
+<end_date>2022-02-05</end_date>
+<priority>2</priority>
+<status_id>1</status_id>
+</task>
+<task>
+<name>Test the YAML APIs.</name>
+<begin_date>2022-02-06</begin_date>
+<end_date>2022-02-08</end_date>
+<priority>3</priority>
+<status_id>1</status_id>
+</task>
+</xml>

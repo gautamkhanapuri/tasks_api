@@ -5,6 +5,7 @@ __pycache__/
 *$py.class
 
 sqlite_api_env
+orm_api_env
 # C extensions
 *.so
 
