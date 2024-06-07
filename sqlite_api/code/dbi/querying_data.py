@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from config import getdb
+from dbi.config import getdb
 
 
 def to_dict(row, table_type='projects'):

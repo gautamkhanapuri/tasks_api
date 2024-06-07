@@ -1,5 +1,5 @@
 import sqlite3
-from config import getdb
+from dbi.config import getdb
 def create_sqlite_database(filename = getdb()):
     """ create a database connection to an SQLite database """
     conn = None

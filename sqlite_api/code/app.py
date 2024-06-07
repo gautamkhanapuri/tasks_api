@@ -2,10 +2,10 @@ from flask import Flask, request, jsonify, Response
 import os
 import yaml
 
-from querying_data import query
-from updating_rows import convert_to_tuple, update_tab
-from inserting_rows import to_tuple, add_project, add_task
-from deleting_rows import make_tuple, delete_row
+from dbi.querying_data import query
+from dbi.updating_rows import convert_to_tuple, update_tab
+from dbi.inserting_rows import to_tuple, add_project, add_task
+from dbi.deleting_rows import make_tuple, delete_row
 
 
 # Globally visible.

@@ -2,7 +2,7 @@ import json
 import sqlite3
 import sys
 import os
-from config import getdb
+from dbi.config import getdb
 
 def add_project(project):
     sql = ''' INSERT INTO projects(name,begin_date,end_date)

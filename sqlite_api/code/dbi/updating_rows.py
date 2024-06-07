@@ -2,7 +2,7 @@ import os
 import sqlite3
 import sys
 import json
-from config import getdb
+from dbi.config import getdb
 
 def update_projects(conn, values):
     update_statement = '''UPDATE projects SET name = ?, begin_date = ?, end_date = ? WHERE id = ?'''

@@ -2,7 +2,7 @@ import json
 import sqlite3
 import sys
 import os.path
-from config import getdb
+from dbi.config import getdb
 
 def delete_row_projects(id):
     try:
