@@ -1,12 +1,12 @@
 import os
-import sys
-import json
-from datetime import date
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 
 def get_db():
+    """
+    To get the path of the database being used. Extracts the path from the environment variable DBPATH.
+    """
     return 'sqlite:///' + os.environ.get('DBPATH')
 
 
@@ -18,6 +18,9 @@ db = SQLAlchemy(app)
 
 
 class Projects(db.Model):
+    """
+    Represents the projects table. Makes it table object.
+    """
     __tablename__ = 'projects'
     exclude = ["id"]
     fields = ["name", "begin_date", "end_date"]
@@ -34,6 +37,9 @@ class Projects(db.Model):
 
 
 class Tasks(db.Model):
+    """
+    Represents the tasks table. Makes it table object.
+    """
     __tablename__ = 'tasks'
     exclude = ["id", "project_id"]
     fields = ["name", "priority", "status_id", "begin_date", "end_date"]
@@ -52,7 +58,10 @@ class Tasks(db.Model):
 
 
 def update_from_json(modelObj, obj, cls):
-    "Update the DB row object"
+    """
+    Update the DB row object if the column is in the updateable row category. A column in the mandatory category
+    cannot be updated to be empty.
+    """
     obj_updated = False
     for fld in modelObj.fields :
         if fld in obj:
@@ -72,6 +81,10 @@ def update_from_json(modelObj, obj, cls):
 
 
 def mandatory_field_check(data, mandatory_fields):
+    """
+    Checks if the given data has all the mandatory fields of that table. If all mandatory fields are present, returns
+    a dictionary only mandatory columns and their provided values.
+    """
     valid = {}
     for field in mandatory_fields:
         if field in data and data[field]:
@@ -83,6 +96,9 @@ def mandatory_field_check(data, mandatory_fields):
 
 
 def add_optional_fields(data, obj, optional_fields):
+    """
+    Adds optional columns and their values to the provided dictionary from an input data set.
+    """
     for field in optional_fields:
         if field in data and data[field]:
             obj[field] = data[field]
@@ -90,6 +106,9 @@ def add_optional_fields(data, obj, optional_fields):
 
 @app.route('/', methods=['GET'])
 def home():
+    """
+    Home page.
+    """
     return """<h1>Projects and Tasks APIs</h1>
     <p>Prototype APIs for Projects and Tasks from sqlite tutorial.</p>
     """
@@ -97,6 +116,9 @@ def home():
 @app.route('/api/resources/projects', methods=['PUT'])
 @app.route('/api/resources/projects/<int:row_id>', methods=['PUT'])
 def projects_update(row_id=None):
+    """
+    To update a row in the projects table.
+    """
     data = request.json
     print(data)
     if row_id:
@@ -120,6 +142,9 @@ def projects_update(row_id=None):
 @app.route('/api/resources/tasks', methods=['PUT'])
 @app.route('/api/resources/tasks/<int:row_id>', methods=['PUT'])
 def tasks_update(row_id=None):
+    """
+    To update a row in the tasks table
+    """
     data = request.json
     print(data)
     if row_id:
@@ -140,7 +165,7 @@ def tasks_update(row_id=None):
 @app.route('/api/resources/projects', methods=['POST'])
 def projects_create():
     '''
-    // TODO
+    To create a new row in the projects table
     '''
     data = request.json
     print(data)
@@ -161,10 +186,11 @@ def projects_create():
         #     return jsonify({"message": "nok"}), 404
 
 
-    
-
 @app.route('/api/resources/tasks', methods=['POST'])
 def tasks_create():
+    """
+    To create a new row in the tasks table
+    """
     data = request.json
     print(data)
     obj = mandatory_field_check(data, Tasks.mandatory_fields)
@@ -182,6 +208,9 @@ def tasks_create():
 @app.route('/api/resources/projects', methods=['DELETE'])
 @app.route('/api/resources/projects/<int:project_id>', methods=['DELETE'])
 def projects_delete(project_id=None):
+    """
+    To delete a row in the projects table based on row id
+    """
     if project_id:
         data = project_id
     elif request.json and 'id' in request.json:
@@ -198,6 +227,9 @@ def projects_delete(project_id=None):
 @app.route('/api/resources/tasks', methods=['DELETE'])
 @app.route('/api/resources/tasks/<int:task_id>', methods=['DELETE'])
 def tasks_delete(task_id=None):
+    """
+    To delete a row in the tasks table based on row id
+    """
     if task_id:
         data = task_id
     elif request.json and 'id' in request.json:
@@ -214,6 +246,9 @@ def tasks_delete(task_id=None):
 @app.route('/api/resources/projects', methods=['GET'])
 @app.route('/api/resources/projects/<int:resource_id>', methods=['GET'])
 def projects(resource_id=None):
+    """
+    To retrieve either all rows or a specific row based on a column
+    """
     if resource_id:
         modelObj = db.session.query(Projects).filter(Projects.id == resource_id).first()
         return jsonify(to_dict(modelObj, Projects, Projects.exclude))
@@ -228,6 +263,9 @@ def projects(resource_id=None):
 @app.route('/api/resources/tasks', methods=['GET'])
 @app.route('/api/resources/tasks/<int:resource_id>', methods=['GET'])
 def tasks(resource_id=None):
+    """
+    To retrieve either all rows or a specific row based on a column
+    """
     if resource_id:
         modelObj = db.session.query(Tasks).filter(Tasks.id == resource_id).first()
         return jsonify(to_dict(modelObj, Tasks, Tasks.exclude))
@@ -259,12 +297,15 @@ def tasks(resource_id=None):
 
 @app.errorhandler(404)
 def page_not_found(e):
+    """
+    In case an incorrect url is specified
+    """
     return """<h1>Projects and Tasks APIs</h1><h2>Page Not Found</h2>""", 404
 
 
 def to_dict(inst, cls, exclude_list):
     """
-    Dict conversion
+    Converts an instance of a projects table or tasks table class or row instance to a dictionary
     """
     convert = dict()
     # add your coversions for things like datetime's 

@@ -1,3 +1,11 @@
+Before running the apporm.py:
+    export PORT=8000
+Set the DBPATH:
+    export DBPATH=/Users/ajeyk/gak/tasks_api/orm_api/data/database/my.db
+Activate venv and install requirements.txt
+
+
+
 502  curl -i "http://localhost:8000/api/resources/tasks" -X DELETE -H "Content-type:"application/json" -d "{"id"}"
   503  curl -i "http://localhost:8000/api/resources/tasks" -X DELETE -H "Content-type: application/json" -d"{"id": 7}"
   504  curl -i "http://localhost:8000/api/resources/tasks" -X DELETE -H "Content-type: application/json" -d'{"id": 7}'
