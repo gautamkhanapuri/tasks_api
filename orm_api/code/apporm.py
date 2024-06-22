@@ -1,4 +1,5 @@
 import os
+import datetime
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
@@ -15,6 +16,9 @@ app = Flask(__name__)
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/my.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = get_db()
 db = SQLAlchemy(app)
+
+
+dateformat = "%Y-%m-%d"
 
 
 class Projects(db.Model):
@@ -49,8 +53,8 @@ class Tasks(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
-    priority = db.Column(db.Integer)
-    status_id = db.Column(db.Unicode)
+    priority = db.Column(db.Integer, default=1)
+    status_id = db.Column(db.Unicode, default=1)
     begin_date = db.Column(db.Text, nullable=False)
     end_date = db.Column(db.Text, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
@@ -171,8 +175,9 @@ def projects_create():
     print(data)
     obj = mandatory_field_check(data, Projects.mandatory_fields)
     if obj:
+        if "begin_date" not in obj:
+            obj["begin_date"] = datetime.datetime.now().date().strftime(dateformat)
         add_optional_fields(data, obj, Projects.optional_fields)
-        obj['id1'] = 2
         project = Projects(**obj)
         db.session.add(project)
         db.session.commit()
@@ -195,12 +200,27 @@ def tasks_create():
     print(data)
     obj = mandatory_field_check(data, Tasks.mandatory_fields)
     if obj:
-        add_optional_fields(data, obj, Tasks.optional_fields)
-        task = Tasks(**obj)
-        db.session.add(task)
-        db.session.commit()
-        outdata = to_dict(task, Tasks, [])
-        return jsonify(outdata), 201
+        stobj = datetime.datetime.strptime(obj["begin_date"], dateformat)
+        edobj = datetime.datetime.strptime(obj["end_date"], dateformat)
+        if stobj > edobj:
+            return jsonify({"message": "invalid date"}), 404
+        else:
+            modelObj = db.session.query(Projects).filter(Projects.id == obj["project_id"]).first()
+            if not modelObj:
+                return jsonify({"message": "Associated project not found"}), 404
+            proj_stobj = datetime.datetime.strptime(modelObj.begin_date, dateformat)
+            if stobj < proj_stobj:
+                return jsonify({"message": "invalid date"}), 404
+            if modelObj.end_date:
+                proj_edobj = datetime.datetime.strptime(modelObj.end_date, dateformat)
+                if edobj < proj_edobj:
+                    return jsonify({"message": "invalid date"}), 404
+            add_optional_fields(data, obj, Tasks.optional_fields)
+            task = Tasks(**obj)
+            db.session.add(task)
+            db.session.commit()
+            outdata = to_dict(task, Tasks, [])
+            return jsonify(outdata), 201
     else:
         return jsonify({"message": "missing fields", "fields": Tasks.mandatory_fields}), 400
 
@@ -218,29 +238,50 @@ def projects_delete(project_id=None):
     print(data)
     modelObj = db.session.query(Projects).filter(Projects.id == data).first()
     if modelObj:
+        c = db.session.query(Tasks).filter(Tasks.project_id == modelObj.id).count()
+
+        if c:
+            return jsonify({"message": f"{c} Tasks exists for this project"}), 400
         db.session.delete(modelObj)
         db.session.commit()
         return ('', 204)
     return jsonify({"message": "nok"}), 404
 
 
-@app.route('/api/resources/tasks', methods=['DELETE'])
-@app.route('/api/resources/tasks/<int:task_id>', methods=['DELETE'])
-def tasks_delete(task_id=None):
+# @app.route('/api/resources/tasks', methods=['DELETE'])
+# @app.route('/api/resources/tasks/<int:task_id>', methods=['DELETE'])
+# def tasks_delete(task_id=None):
+#     """
+#     To delete a row in the tasks table based on row id
+#     """
+#     if task_id:
+#         data = task_id
+#     elif request.json and 'id' in request.json:
+#         data = request.json['id']
+#     print(data)
+#     modelObj = db.session.query(Tasks).filter(Tasks.id == data).first()
+#     if modelObj:
+#         db.session.delete(modelObj)
+#         db.session.commit()
+#         return ('', 204)
+#     return jsonify({"message": "nok"}), 404
+
+
+@app.route('/api/resources/projects/<int:project_id>/tasks/<int:task_id>', methods=['DELETE'])
+def tasks_del(project_id, task_id):
     """
     To delete a row in the tasks table based on row id
     """
-    if task_id:
-        data = task_id
-    elif request.json and 'id' in request.json:
-        data = request.json['id']
-    print(data)
-    modelObj = db.session.query(Tasks).filter(Tasks.id == data).first()
-    if modelObj:
-        db.session.delete(modelObj)
-        db.session.commit()
-        return ('', 204)
-    return jsonify({"message": "nok"}), 404
+    if project_id:
+        projobj = db.session.query(Projects).filter(Projects.id == project_id).first()
+        if projobj and task_id:
+            task_obj = db.session.query(Tasks).filter(Tasks.project_id == project_id, Tasks.id == task_id).first()
+            if task_obj:
+                db.session.delete(task_obj)
+                db.session.commit()
+                return ('', 204)
+            return jsonify({"message": "No task associated with project"}), 404
+        return jsonify({"message": "Project not found"}), 404
 
 
 @app.route('/api/resources/projects', methods=['GET'])
@@ -251,7 +292,9 @@ def projects(resource_id=None):
     """
     if resource_id:
         modelObj = db.session.query(Projects).filter(Projects.id == resource_id).first()
-        return jsonify(to_dict(modelObj, Projects, Projects.exclude))
+        if modelObj:
+            return jsonify(to_dict(modelObj, Projects, Projects.exclude))
+        return jsonify({"message": "project not found"}), 404
     else:
         modelobjs = []
         objs = db.session.query(Projects).all()
@@ -268,13 +311,38 @@ def tasks(resource_id=None):
     """
     if resource_id:
         modelObj = db.session.query(Tasks).filter(Tasks.id == resource_id).first()
-        return jsonify(to_dict(modelObj, Tasks, Tasks.exclude))
+        if modelObj:
+            return jsonify(to_dict(modelObj, Tasks, Tasks.exclude))
+        return jsonify({"message": "tasks not found"}), 404
     else:
         modelobjs = []
         objs = db.session.query(Tasks).all()
         for obj in objs:
             modelobjs.append(to_dict(obj, Tasks, []))
         return jsonify(modelobjs)
+
+
+@app.route('/api/resources/projects/<int:project_id>/tasks', methods=['GET'])
+@app.route('/api/resources/projects/<int:project_id>/tasks/<int:resource_id>', methods=['GET'])
+def project_tasks(project_id, resource_id=None):
+    """
+    To retrieve either all rows or a specific row based on a column
+    """
+
+    projectObj = db.session.query(Projects).filter(Projects.id == project_id).first()
+    if projectObj:
+        if resource_id:
+            modelObj = db.session.query(Tasks).filter(Tasks.project_id == project_id, Tasks.id == resource_id).first()
+            if modelObj:
+                return jsonify(to_dict(modelObj, Tasks, Tasks.exclude))
+            return jsonify({"message": "Task for project_id not found"}), 404
+        else:
+            taskobjs = db.session.query(Tasks).filter(Tasks.project_id == project_id).all()
+            modelobjs = []
+            for obj in taskobjs:
+                modelobjs.append(to_dict(obj, Tasks, []))
+            return jsonify(modelobjs), 200
+    return jsonify({"message": "project not found"}), 404
 
 
 # @app.route('/api/resources/<resource>', methods=['GET'])
